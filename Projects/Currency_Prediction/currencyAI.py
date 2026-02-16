@@ -36,23 +36,38 @@ def grad(x, y, theta):
     diff = f(x, theta) - y
     return (x.T @ diff).ravel() / m
     
-file_location = '\\Currency_Prediction\\monthly.parquet'
-df = pd.read_parquet(file_location)
+url = 'https://storage.data.gov.my/finsector/exr/monthly.parquet'
+df = pd.read_parquet(url)
 
 #df.plot(x="date", y="USD", figsize=(10,5))
 #plt.show()
 
-x = df["date"]
-y = df["USD"]
+df_monthly = df[df["indicator"] == "avg"].copy()
 
+df_monthly["date"] = pd.to_datetime(df_monthly["date"], dayfirst=True)
 
+df_monthly = df_monthly.sort_values("date").reset_index(drop=True)
+
+df_monthly["lag1"] = df_monthly["USD"].shift(1)
+df_monthly["lag2"] = df_monthly["USD"].shift(2)
+df_monthly["lag3"] = df_monthly["USD"].shift(3)
+df_monthly["rolling_mean"] = df_monthly["USD"].rolling(3).mean().shift(1) # doesn't seem to do much to do the model
+
+df_monthly = df_monthly.dropna()
+
+x = df_monthly[["lag1", "lag2", "lag3", "rolling_mean"]]
+y = df_monthly["USD"]
+
+# split the data to train and test set
 x_train, x_test, y_train, y_test = train_test_split(x,y, test_size=0.2, shuffle=False)
 n_train = x_train.shape[0]
 n_test = x_test.shape[0]
 
-x_train = x_train.values.reshape(-1, 1)
-x_test = x_test.values.reshape(-1, 1)
+# convert to numpy, I prob dont need it since I have multiple features now
+#x_train = x_train.values.reshape(-1, 1)
+#x_test = x_test.values.reshape(-1, 1)
 
+# convert to numpy
 y_train = y_train.values.reshape(-1, 1)
 y_test = y_test.values.reshape(-1, 1)
 
@@ -69,6 +84,7 @@ lr = 0.1
 n_iters  = 50
 theta = np.zeros(x_train_b.shape[1])
 
+# training the model with gradient descent
 for iter in range(n_iters):
     theta -= lr * grad(x_train_b, y_train, theta)
     if iter % 10 == 0 or iter == n_iters - 1:
@@ -76,15 +92,38 @@ for iter in range(n_iters):
         print(f"Iter {iter:4d} | Train MSE: {train_mse:.2f}")
 
 # evaluate the model
-
 print(f"  Train MSE: {mse(x_train_b, y_train, theta):.2f}")
 print(f"  Test  MSE: {mse(x_test_b, y_test, theta):.2f}")
 
 y_train_pred = f(x_train_b, theta)
 y_test_pred = f(x_test_b, theta)
-# actual_vs_predicted(y_test_pred, y_test)
+actual_vs_predicted(y_test_pred, y_test)
 
+# the following is for prediction. To keep it simple, 
+# I'll just use the sklearn linear regression
 
-# fix the high bias problem (underfitting). I will probably need to add more features
+print(df_monthly[["date", "USD"]].tail(10))
 
+last_row = df_monthly.iloc[-3:]
+lag1 = last_row["USD"].iloc[-1]
+lag2 = last_row["USD"].iloc[-2]
+lag3 = last_row["USD"].iloc[-3]
+rolling_mean = df_monthly["USD"].iloc[-3:].mean()
+
+print(lag1, " ", lag2, " ", lag3)
+model = LinearRegression()
+model.fit(x_train_b, y_train)
+x_next_raw = np.array([[lag1, lag2, lag3, rolling_mean]])
+
+# normalize the features
+scaler = StandardScaler()
+x_next = scaler.fit_transform(x_next_raw)
+
+# add bias
+bias = np.ones((1,1))
+x_next_b = np.concatenate([x_next, bias], axis=1)
+
+y_next = model.predict(x_next_b)
+
+print("Predicted MYR to USD for next month:", y_next[0])
 
