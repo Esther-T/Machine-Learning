@@ -8,4 +8,5 @@ The following are the main functions of the ML pipeline that I've built:
 - Vocabulary: extracts unique words as features
 - Vectorizations: convert sentences into word count vectors aka BoW
 - Training: using gradient descent with the helper functions to learn the parameters: theta 
-- Evaluation: predicts on test data and compared to actuals 
+- Evaluation: predicts on test data and compared to actuals
+- I integrated the model into an existing app: https://esther-t.github.io/prompt-analyzer-app/ 
