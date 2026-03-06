@@ -1,6 +1,4 @@
-Currently in progress.
-
-I'm building a pipeline with a simple logistic regression model that predicts if a prompt is jailbreak attempt or not. I will be documenting my success and failures while evaluating the model
+I built a pipeline with a simple logistic regression model that predicts if a prompt is jailbreak attempt or not. I will be documenting my success and failures while evaluating the model
 
 The following are the main functions of the ML pipeline that I've built:
 
